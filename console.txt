@@ -1,0 +1,68 @@
+show databases;
+set hive.exec.dynamic.partition.mode=nonstrict;
+create database if not exists nyse_db;
+use nyse_db;
+select current_database();
+create table if not exists nyse_daily
+(ticker string,tradedate int,openprice float,highprice float
+,lowprice float,closeprice float,volume bigint)
+partitioned by (trademonth int) stored as parquet;
+show tables;
+create table if not exists nyse_stg
+(ticker string,tradedate int,openprice float,highprice float
+    ,lowprice float,closeprice float,volume bigint)
+row format delimited fields terminated by ',';
+-- loading 1997 data
+load data local inpath '/home/mites/data-engineering/data/nyse_all/nyse_data/NYSE_1997.txt.gz' overwrite
+    into table nyse_stg;
+select * from nyse_stg limit 5;
+INSERT OVERWRITE TABLE nyse_daily PARTITION (trademonth)
+SELECT
+    ns.*,
+    SUBSTR(ns.tradedate, 1, 6) AS trademonth
+FROM
+    nyse_stg AS ns;
+SELECT * FROM nyse_daily limit 5;
+show partitions nyse_daily;
+select count(*) from nyse_daily;
+select trademonth,count(*) from nyse_daily group by trademonth order by trademonth;
+set hive.exec.dynamic.partition.mode=nonstrict;
+select * from nyse_daily;
+-- loading 1998 data
+load data local inpath '/home/mites/data-engineering/data/nyse_all/nyse_data/NYSE_1998.txt.gz'
+    overwrite into table nyse_stg;
+select * from nyse_stg limit 5;
+select  count(*) from nyse_stg;
+set hive.exec.dynamic.partition.mode;
+INSERT OVERWRITE TABLE nyse_daily PARTITION (trademonth)
+SELECT
+    ns.*,
+    SUBSTR(ns.tradedate, 1, 6) AS trademonth
+FROM
+    nyse_stg AS ns;
+show partitions nyse_daily;
+select count(*) from nyse_daily;
+select trademonth,count(*) from nyse_daily group by trademonth order by trademonth;
+-- loading 1999 data
+load data local inpath '/home/mites/data-engineering/data/nyse_all/nyse_data/NYSE_1999.txt.gz'
+overwrite into table nyse_stg;
+select substr(tradedate,1,4),count(*) from nyse_stg group by substr(tradedate,1,4);
+set hive.exec.dynamic.partition.mode;
+insert overwrite table nyse_daily partition (trademonth)
+select ns.*,substr(tradedate,1,6) as trademonth from nyse_stg as ns;
+show partitions nyse_daily;
+select trademonth,count(*) from nyse_daily group by trademonth order by trademonth;
+-- loading 2000 data
+load data local inpath '/home/mites/data-engineering/data/nyse_all/nyse_data/NYSE_2000.txt.gz'
+    overwrite into table nyse_stg;
+select substr(tradedate,1,4),count(*) from nyse_stg group by substr(tradedate,1,4);
+set hive.exec.dynamic.partition.mode;
+insert overwrite table nyse_daily partition (trademonth)
+select ns.*,substr(tradedate,1,6) as trademonth from nyse_stg as ns;
+show partitions nyse_daily;
+select trademonth,count(*) from nyse_daily group by trademonth order by trademonth;
+drop database nyse_db cascade;
+
+
+
+
